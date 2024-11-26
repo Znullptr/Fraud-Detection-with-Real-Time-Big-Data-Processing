@@ -7,5 +7,4 @@ Based on this learning, your current credit transaction will be predicted as fra
 Such predictions will be done on millions of transaction. Hence distributed frameworks are used which can scale as the transactions increases.
 
 
-Real time Creditcard Fruad detection using Spark2.2, Kafka, Cassandra. Automation of Spark Jobs using Airflow Automation.
-Discount Coupon Link: https://www.udemy.com/real-time-creditcard-fraud-detection-using-spark/?couponCode=DIS640
+
