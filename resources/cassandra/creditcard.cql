@@ -27,19 +27,3 @@ CREATE TABLE IF NOT EXISTS kafka_offset (
   PRIMARY KEY(partition)
 );
 
-
-CREATE TABLE IF NOT EXISTS customer (
-  cc_num text,
-  first text,
-  last text,
-  gender text,
-  street text,
-  city text,
-  state text,
-  zip text,
-  lat double,
-  long double,
-  job text,
-  dob timestamp,
-  PRIMARY KEY(cc_num)
-);

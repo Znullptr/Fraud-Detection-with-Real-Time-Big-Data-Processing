@@ -12,6 +12,8 @@ class KafkaConfig(Config):
         self.logger.info("Loading Kafka settings")
         self.transaction_datasource = super().local_project_dir + \
             super().application_conf.get("config.kafka.transaction.datasource", "resources/data/test/transactions.csv")
+        self.customer_datasource = super().local_project_dir + \
+            super().application_conf.get("config.kafka.customer.datasource", "resources/data/train/customer.csv")
         self.kafka_params["subscribe"] = super().application_conf.get("config.kafka.topic", "creditcardTransaction")
         self.kafka_params["enable.auto.commit"] = super().application_conf.get("config.kafka.enable.auto.commit", "false")
         self.kafka_params["groupId"] = super().application_conf.get("config.kafka.group.id", "creditcardConsumer")

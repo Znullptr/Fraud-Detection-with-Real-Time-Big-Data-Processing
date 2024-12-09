@@ -21,7 +21,19 @@ def random_forest_classifier(df: DataFrame):
     transaction_with_prediction = model.transform(test)
 
     # Log the total data count and count of correct predictions
-    logger.info(f"Total data count: {transaction_with_prediction.count()}")
-    logger.info(f"Count of correct predictions: {transaction_with_prediction.filter(transaction_with_prediction['prediction'] == transaction_with_prediction['label']).count()}")
+    total_data_count= transaction_with_prediction.count()
+    correct_predection_count = transaction_with_prediction.filter(transaction_with_prediction['prediction'] == transaction_with_prediction['label']).count()
+    accuracy = (correct_predection_count/total_data_count)*100
+    print("*******************************************************")
+    print("*******************************************************")
+    print("*******************************************************")
+    print("*******************************************************")
+    print("*******************************************************")
+    print(f"accuracy score: {accuracy}%")
+    print("*******************************************************")
+    print("*******************************************************")
+    print("*******************************************************")
+    print("*******************************************************")
+    print("*******************************************************")
 
     return model

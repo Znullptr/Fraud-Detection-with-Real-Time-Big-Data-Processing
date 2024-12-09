@@ -1,4 +1,4 @@
-from pyspark.sql.types import StructType, StringType, DoubleType, LongType, TimestampType
+from pyspark.sql.types import StructType, StringType, DoubleType, LongType, TimestampType, IntegerType
 
 class Schema:
     transaction_structure_name = "transaction"
@@ -38,12 +38,16 @@ class Schema:
     kafka_transaction_structure_name = transaction_structure_name
     kafka_transaction_schema = StructType() \
         .add("cc_num", StringType(), True) \
-        .add("first", StringType(), True) \
-        .add("last", StringType(), True) \
         .add("trans_num", StringType(), True) \
         .add("trans_time", TimestampType(), True) \
         .add("category", StringType(), True) \
         .add("merchant", StringType(), True) \
         .add("amt", StringType(), True) \
         .add("merch_lat", StringType(), True) \
-        .add("merch_long", StringType(), True)
+        .add("merch_long", StringType(), True) \
+        .add("distance", DoubleType(), True) \
+        .add("age", IntegerType(), True) \
+        .add("is_fraud", DoubleType(), True)
+        
+
+

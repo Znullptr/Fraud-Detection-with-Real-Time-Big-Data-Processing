@@ -1,8 +1,10 @@
 import logging
 import os
-from pyspark.sql import SparkSession
+import random
+from pyspark.sql import SparkSession, Row
+from pyspark.sql import functions as F
 from pyspark.sql.types import StructType, StructField, IntegerType
-from pyspark.ml.linalg import DenseVector
+from pyspark.ml.linalg import Vectors
 from pyspark.rdd import RDD
 from pyspark.sql import DataFrame
 from pyspark.ml.clustering import KMeans
@@ -49,31 +51,93 @@ def get_offset(rdd: RDD, spark_session: SparkSession) -> DataFrame:
     return spark_session.createDataFrame(offset_data, ["partition", "offset"])
 
 
-def create_balanced_dataframe(df: DataFrame, reduction_count: int, spark_session: SparkSession) -> DataFrame:
+def create_balanced_dataframe(df, label_col, features_col, minority_class, num_samples):
     """
-    In fraud detection datasets, there are usually more non-fraud transactions than fraud ones.
-    To balance the non-fraud transactions, KMeans algorithm is applied to reduce the number
-    of non-fraud transactions to match the number of fraud transactions.
+    Creates synthetic samples for the minority class by interpolating existing samples.
+    :param df: Input DataFrame
+    :param label_col: Column name for the label
+    :param features_col: Column name for the features
+    :param minority_class: The value of the minority class label
+    :param num_samples: Number of synthetic samples to create
+    :return: DataFrame with synthetic samples added
     """
-    # Apply KMeans to create 'reduction_count' clusters
-    kmeans = KMeans(k=reduction_count, maxIter=30)
-    kmeans_model = kmeans.fit(df)
+    # Filter minority class
+    minority_df = df.filter(F.col(label_col) == minority_class)
+    minority_rows = minority_df.collect()
 
-    # Convert cluster centers to DenseVector format
-    centers = [DenseVector(center) for center in kmeans_model.clusterCenters()]
+    synthetic_samples = []
+    for _ in range(num_samples):
+        # Randomly choose two minority samples
+        row1, row2 = random.sample(minority_rows, 2)
+        features1 = row1[features_col].toArray()
+        features2 = row2[features_col].toArray()
 
-    # Define schema for the balanced DataFrame
-    schema = StructType([
-        StructField("features", df.schema["features"].dataType, False), 
-        StructField("label", IntegerType(), False)
-    ])
+        # Interpolate features
+        synthetic_features = Vectors.dense(
+            features1 + random.random() * (features2 - features1)
+        )
 
-    # Create balanced DataFrame from cluster centers
-    balanced_df = spark_session.createDataFrame(
-        [(center, 0) for center in centers],
-        schema=schema
-    )
+        # Create a synthetic row
+        synthetic_samples.append(Row(features=synthetic_features, label=minority_class))
+
+    # Convert synthetic samples to a DataFrame
+    synthetic_df = df.sql_ctx.createDataFrame(synthetic_samples)
+
+    # Combine with the original DataFrame
+    balanced_df = df.union(synthetic_df)
+    return balanced_df
+
+def kmeans_oversample(df, label_col, features_col, minority_class, num_samples, k):
+    """
+    Uses KMeans clustering to generate synthetic samples for the minority class.
+    :param df: Input DataFrame
+    :param label_col: Column name for the label
+    :param features_col: Column name for the features
+    :param minority_class: The value of the minority class label
+    :param num_samples: Number of synthetic samples to generate
+    :param k: Number of clusters for KMeans
+    :return: DataFrame with synthetic samples added
+    """
+    # Filter the minority class
+    minority_df = df.filter(F.col(label_col) == minority_class)
     
+    # Train KMeans on the minority class
+    kmeans = KMeans(k=k, featuresCol=features_col, seed=42, maxIter=50)
+    kmeans_model = kmeans.fit(minority_df)
+    
+    # Get cluster centers
+    cluster_centers = kmeans_model.clusterCenters()
+    
+    # Collect minority class data as a list
+    minority_data = minority_df.select(features_col).collect()
+    
+    # Generate synthetic samples
+    synthetic_samples = []
+    for _ in range(num_samples):
+        # Randomly choose a cluster center
+        cluster_idx = random.randint(0, k - 1)
+        cluster_center = Vectors.dense(cluster_centers[cluster_idx])
+        
+        # Randomly perturb the cluster center or interpolate between two points in the cluster
+        if len(minority_data) > 1:
+            point1 = random.choice(minority_data)[features_col].toArray()
+            point2 = random.choice(minority_data)[features_col].toArray()
+            synthetic_features = Vectors.dense(
+                point1 + random.random() * (point2 - point1)
+            )
+        else:
+            # If only one point exists, slightly perturb the center
+            synthetic_features = Vectors.dense(
+                cluster_center + 0.01 * (random.random() - 0.5)
+            )
+        
+        synthetic_samples.append(Row(features=synthetic_features, label=minority_class))
+    
+    # Convert synthetic samples to DataFrame
+    synthetic_df = df.sql_ctx.createDataFrame(synthetic_samples)
+    
+    # Combine synthetic samples with the original DataFrame
+    balanced_df = df.union(synthetic_df)
     return balanced_df
 
 def send_to_kafka(producer, topic, df):

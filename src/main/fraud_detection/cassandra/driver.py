@@ -45,6 +45,7 @@ class CassandraDriver:
         df.writeStream \
             .foreachBatch(write_to_cassandra) \
             .outputMode("append") \
+            .trigger(processingTime="15 seconds") \
             .start() \
             .awaitTermination()  # This will wait for the termination of the query
 

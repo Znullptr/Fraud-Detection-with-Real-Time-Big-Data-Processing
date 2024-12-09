@@ -2,7 +2,7 @@ from pyspark.sql import SparkSession
 from pyspark.ml import Pipeline
 from pyspark.sql.functions import col
 from src.main.fraud_detection.config import Config
-from src.main.fraud_detection.helpers import read_from_cassandra, create_balanced_dataframe
+from src.main.fraud_detection.helpers import read_from_hudi, kmeans_oversample
 from src.main.fraud_detection.spark.algorithms import random_forest_classifier
 from src.main.fraud_detection.spark.pipeline import create_feature_pipeline
 
@@ -15,12 +15,23 @@ def main(args):
     # Initialize Spark session
     spark = SparkSession.builder \
         .appName("Initialise Fraud Detection Model and fit it to dataset") \
-        .config("spark.cassandra.connection.host", config.cassandra_config.host) \
+        .config("spark.serializer", "org.apache.spark.serializer.KryoSerializer") \
+        .config("spark.sql.catalogImplementation", "hive") \
+        .config("spark.sql.hive.convertMetastoreParquet", "false") \
         .getOrCreate()
     
     # Read transactions from Cassandra
+    
+    hudi_options = {
+        "hoodie.datasource.read.streaming.enabled": "false",  
+        "hoodie.datasource.read.recordkey.field": "trans_num", 
+        "hoodie.datasource.read.precombine.field": "timestamp",
+        "hoodie.metadata.enable": "false"
+    }
 
-    transaction_df = read_from_cassandra(config.cassandra_config.keyspace, config.cassandra_config.transaction_table, spark) \
+    processed_transaction_hudi_path = "hdfs://Master:9000/user/hudi/tables/processed_transactions"
+
+    transaction_df = read_from_hudi(processed_transaction_hudi_path,hudi_options,spark) \
         .select("category", "merchant", "distance", "amt", "age", "is_fraud")
 
     transaction_df.cache()
@@ -37,24 +48,16 @@ def main(args):
     preprocessing_transformer_model.write().overwrite().save(config.spark_config.preprocessing_model_path)
 
     # Transform the transaction DataFrame using the pipeline
-    feature_df = preprocessing_transformer_model.transform(transaction_df)
+    feature_df = preprocessing_transformer_model.transform(transaction_df) \
+                                                .withColumnRenamed("is_fraud", "label") \
+                                                .select("features", "label")
 
-    # Separate fraud and non-fraud transactions
-    fraud_df = feature_df.filter(col("is_fraud") == 1) \
-        .withColumnRenamed("is_fraud", "label") \
-        .select("features", "label")
 
-    non_fraud_df = feature_df.filter(col("is_fraud") == 0)
-
-    # Count fraud transactions
-    fraud_count = fraud_df.count()
-
-    # Balance the dataset by applying K-means clustering on non-fraud data
-    balanced_non_fraud_df = create_balanced_dataframe(non_fraud_df, int(fraud_count), spark)
-    final_feature_df = fraud_df.union(balanced_non_fraud_df)
+    # Balance the dataset by applying K-means clustering on fraud data
+    balanced_feature_df = kmeans_oversample(feature_df, label_col="label", features_col="features", minority_class=1, num_samples=10000, k=10)
 
     # Train the random forest classifier
-    random_forest_model = random_forest_classifier(final_feature_df)
+    random_forest_model = random_forest_classifier(balanced_feature_df)
     
     # Save the trained model
     random_forest_model.write().overwrite().save(config.spark_config.model_path)

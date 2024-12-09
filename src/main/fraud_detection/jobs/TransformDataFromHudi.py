@@ -19,21 +19,28 @@ def main(args):
         .config("spark.sql.hive.convertMetastoreParquet", "false") \
         .getOrCreate()
     
-    hudi_options = {
+    customer_hudi_options = {
         "hoodie.datasource.read.streaming.enabled": "false",  
         "hoodie.datasource.read.recordkey.field": "cc_num", 
+        "hoodie.datasource.read.precombine.field": "update_timestamp",
+        "hoodie.metadata.enable": "false"
+    }
+    
+    transaction_hudi_options = {
+        "hoodie.datasource.read.streaming.enabled": "false",  
+        "hoodie.datasource.read.recordkey.field": "trans_num", 
         "hoodie.datasource.read.precombine.field": "timestamp",
         "hoodie.metadata.enable": "false"
     }
 
     # Read transaction data
     transaction_hudi_path = "hdfs://Master:9000/user/hudi/tables/transactions"
-    transaction_df = read_from_hudi(transaction_hudi_path,hudi_options,spark).withColumn("trans_time", to_timestamp("trans_time", "yyyy-MM-dd HH:mm:ss").cast(TimestampType()))
+    transaction_df = read_from_hudi(transaction_hudi_path,customer_hudi_options,spark).withColumn("trans_time", to_timestamp("trans_time", "yyyy-MM-dd HH:mm:ss").cast(TimestampType()))
     transaction_df.show()
 
     # Read customer data
     customer_hudi_path = "hdfs://Master:9000/user/hudi/tables/customers"
-    customer_df = read_from_hudi(customer_hudi_path, hudi_options, spark)
+    customer_df = read_from_hudi(customer_hudi_path, transaction_hudi_options, spark)
     customer_df.show()
 
     # Calculate customer age
@@ -53,7 +60,7 @@ def main(args):
     # Save transactions to Hudi
     transaction_hudi_options = {
         "hoodie.table.name": "processed_transactions",
-        "hoodie.datasource.write.recordkey.field": "cc_num", 
+        "hoodie.datasource.write.recordkey.field": "trans_num", 
         "hoodie.datasource.write.partitionpath.field": "partition_column",  
         "hoodie.datasource.write.table.name": "processed_transactions",
         "hoodie.datasource.write.precombine.field": "timestamp", 

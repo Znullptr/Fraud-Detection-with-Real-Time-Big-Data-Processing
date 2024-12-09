@@ -31,7 +31,6 @@ def main(args):
     # Load CSV file into DataFrame
     customer_df = read_from_csv(config.spark_config.customer_datasource, Schema.customer_schema, spark)
 
-
     # Add partition and timestamp columns if necessary
     customer_df = customer_df.withColumn("partition_column", lit("default_partition")) \
         .withColumn("update_timestamp", lit("2024-01-01 00:00:00"))  # Example static columns
@@ -46,7 +45,7 @@ def main(args):
     print("Customers Data written successfully to Hudi table.")
     transaction_hudi_options = {
         "hoodie.table.name": "transactions",
-        "hoodie.datasource.write.recordkey.field": "cc_num", 
+        "hoodie.datasource.write.recordkey.field": "trans_num", 
         "hoodie.datasource.write.partitionpath.field": "partition_column",  
         "hoodie.datasource.write.table.name": "transactions",
         "hoodie.datasource.write.precombine.field": "timestamp", 
@@ -56,7 +55,7 @@ def main(args):
 
     # Load transactions CSV into DataFrame
     transactions_df = read_from_csv(config.spark_config.transaction_datasource, Schema.transaction_schema, spark)
-
+    transactions_df.cache()
     # Add partition and timestamp columns for transactions
     transactions_df = transactions_df.withColumn("partition_column", lit("default_partition")) \
         .withColumn("timestamp", lit("2024-01-01 00:00:00")) 
