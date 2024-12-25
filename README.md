@@ -1,17 +1,15 @@
 # Real time Credit card FraudDetection
 
-
-This project focuses on detecting abusive language in comments written in the Tunisian dialect. Using a combination of web scraping, deep learning, and state-of-the-art NLP models, the system identifies abusive content in Tunisian comments from YouTube.
+This project implements a scalable, real-time fraud detection pipeline using Apache Spark, Kafka, Hudi, and Presto. It processes large-scale transaction data in real time, leveraging stream and batch processing to detect fraudulent activities efficiently.
 
 ---
 
 ## 🚀 Pipeline
-
----
+<img src="images/architecture-pipeline.png"/>
 
 ## 🔧 Cluster Architecture
 
-
+<img src="images/cluster-architecture.png"/>
 
 ## 🗂️ Data Format
 
@@ -24,8 +22,8 @@ This project focuses on detecting abusive language in comments written in the Tu
 ## 💻 Model Used
 
 ### Random Forest
-- Combines the power of **Convolutional Neural Networks (CNNs)** for feature extraction and **Long Short-Term Memory (LSTM)** networks for sequential modeling.
-- Implemented in **TensorFlow/Keras**.
+- Implemented in **PySpark's MLlib** for distributed and scalable machine learning.
+- PySpark's implementation of Random Forest is ideal for handling large datasets as it leverages the distributed computing power of Spark. It builds multiple decision trees and aggregates their predictions to improve the model's accuracy and robustness.
 
 ---
 
@@ -40,3 +38,8 @@ This project focuses on detecting abusive language in comments written in the Tu
 
 This project is licensed under the **MIT License**. See the `LICENSE` file for details.
 
+---
+
+## 📽️ YouTube Link
+
+Watch the project overview on [YouTube]([https://www.youtube.com](https://youtu.be/xybaE9OcHRY?si=-y_FTJVKH5dQxO5s)).
