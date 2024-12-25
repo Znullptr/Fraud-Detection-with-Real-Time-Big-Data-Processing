@@ -7,9 +7,25 @@ This project implements a scalable, real-time fraud detection pipeline using Apa
 ## 🚀 Pipeline
 <img src="images/architecture-pipeline.png"/>
 
+---
+
+## 🛠️ Used Technologies
+
+- **Apache Kafka**: For real-time data streaming.
+- **Apache Cassandra**: For distributed NoSQL database storage.
+- **Apache Spark**: For data processing and machine learning.
+- **Apache Hudi**: For OLAP and data versioning.
+- **Apache Hive Metastore**: For managing metadata.
+- **Presto**: For distributed SQL querying.
+- **Apache Superset**: For data visualization.
+
+---
+
 ## 🔧 Cluster Architecture
 
 <img src="images/cluster-architecture.png"/>
+
+---
 
 ## 🗂️ Data Format
 
@@ -42,4 +58,4 @@ This project is licensed under the **MIT License**. See the `LICENSE` file for d
 
 ## 📽️ YouTube Link
 
-Watch the project overview on [YouTube]([https://www.youtube.com](https://youtu.be/xybaE9OcHRY?si=-y_FTJVKH5dQxO5s)).
+Watch the project overview on [YouTube](https://youtu.be/xybaE9OcHRY?si=-y_FTJVKH5dQxO5s).
